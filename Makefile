@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall
-SRC = src/Task.cpp src/WorkerNode.cpp src/TaskManager.cpp main.cpp
+SRC = src/task.cpp src/workernode.cpp src/taskmanager.cpp main.cpp
 OBJ = $(SRC:.cpp=.o)
 TARGET = task_manager
 

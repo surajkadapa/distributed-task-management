@@ -1,6 +1,6 @@
-#include "taskmanager.h"
-#include "workernode.h"
-#include "task.h"
+#include "/Users/gaganphadke/OOAD/Project/distributed-task-management/src/taskmanager.h"
+#include "/Users/gaganphadke/OOAD/Project/distributed-task-management/src/workernode.h"
+#include "/Users/gaganphadke/OOAD/Project/distributed-task-management/src/task.h"
 #include <iostream>
 
 int main() {
