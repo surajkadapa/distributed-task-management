@@ -1,20 +1,44 @@
-#ifndef WORKERNODE_H
-#define WORKERNODE_H
+// include/workernode.h
+#ifndef WORKER_NODE_H
+#define WORKER_NODE_H
 
-#include "Task.h"
+#include "task.h"
 #include <string>
+#include <vector>
+#include <queue>
 
+// Observer Pattern - Subject
 class WorkerNode {
-public:
-    WorkerNode(std::string id, int resources);
-    void executeTask(Task& task);
-    void reportStatus();
-    void heartbeat();
-    void recoverTask(Task& task);
-
 private:
-    std::string nodeID;
-    int availableResources;
+    int nodeId;
+    std::string nodeName;
+    bool active;
+    std::queue<std::shared_ptr<Task>> taskQueue;
+    std::vector<int> observers; // IDs of observer objects
+    
+public:
+    WorkerNode(int id, const std::string& name);
+    
+    // Node operations
+    void activate();
+    void deactivate();
+    bool isActive() const;
+    
+    // Task operations
+    void addTask(const Task& task);
+    std::shared_ptr<Task> getNextTask();
+    bool hasTasksPending() const;
+    int getQueueSize() const;
+    
+    // Observer pattern methods
+    void registerObserver(int observerId);
+    void removeObserver(int observerId);
+    void notifyObservers(const std::string& message);
+    
+    // Getters/Setters
+    int getId() const;
+    std::string getName() const;
+    void setName(const std::string& name);
 };
 
-#endif
+#endif // WORKER_NODE_H

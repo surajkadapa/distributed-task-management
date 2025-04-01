@@ -24,6 +24,7 @@ public:
 
     // Recover and re-execute a failed task
     void recoverTask(Task& task);
+    
 };
 
 #endif // WORKERNODE_H

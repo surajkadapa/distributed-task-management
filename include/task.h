@@ -2,20 +2,51 @@
 #define TASK_H
 
 #include <string>
-#include <map>
+#include <vector>
+#include <ctime>
+
+enum class TaskStatus { PENDING, IN_PROGRESS, COMPLETED, FAILED };
+enum class TaskPriority { LOW, MEDIUM, HIGH, CRITICAL };
 
 class Task {
-public:
-    Task(std::string id, int priority);
-    void execute();
-    std::string getStatus() const;
-    std::map<std::string, std::string> getResult() const;
-
 private:
-    std::string taskID;
-    int priority;
-    std::string status;
-    std::map<std::string, std::string> data;
+    int taskId;
+    std::string title;
+    std::string description;
+    TaskPriority priority;
+    TaskStatus status;
+    time_t creationTime;
+    time_t dueTime;
+    int assignedUserId;
+    int createdByUserId;
+
+public:
+    Task();
+    Task(int id, const std::string& title, const std::string& desc, 
+         TaskPriority priority, int assignedUser, int createdBy);
+    
+    // Getters
+    int getId() const;
+    std::string getTitle() const;
+    std::string getDescription() const;
+    TaskPriority getPriority() const;
+    TaskStatus getStatus() const;
+    time_t getCreationTime() const;
+    time_t getDueTime() const;
+    int getAssignedUserId() const;
+    int getCreatedByUserId() const;
+    
+    // Setters
+    void setTitle(const std::string& title);
+    void setDescription(const std::string& desc);
+    void setPriority(TaskPriority priority);
+    void setStatus(TaskStatus status);
+    void setDueTime(time_t dueTime);
+    void setAssignedUserId(int userId);
+    
+    // Utility methods
+    std::string priorityToString() const;
+    std::string statusToString() const;
 };
 
-#endif
+#endif // TASK_H
