@@ -1,6 +1,7 @@
 // src/workernode.cpp
 #include "../include/workernode.h"
 #include "../include/loggingservice.h"
+#include <algorithm>
 
 WorkerNode::WorkerNode(int id, const std::string& name)
     : nodeId(id), nodeName(name), active(false) {

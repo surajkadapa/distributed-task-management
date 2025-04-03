@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <memory>
 
 // Observer Pattern - Subject
 class WorkerNode {

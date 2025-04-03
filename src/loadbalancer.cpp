@@ -2,6 +2,7 @@
 #include "../include/loadbalancer.h"
 #include "../include/loggingservice.h"
 #include <algorithm>
+#include <climits>
 
 // Strategy implementations
 RoundRobinStrategy::RoundRobinStrategy() : lastSelectedIndex(-1) {
