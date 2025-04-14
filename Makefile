@@ -7,11 +7,11 @@ SRC_DIR = src
 FRONTEND_DIR = frontend
 
 # Additional Wt paths (assuming installed via /usr/local)
-WT_INC = /usr/local/include
+WT_INC = /usr/local/include -Iinclude
 WT_LIB = /usr/local/lib
 
 # Libraries
-LIBS = -lwt -lwthttp -lboost_system -lpthread
+LIBS = -lboost_system -lpthread
 
 # List of all source files
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
