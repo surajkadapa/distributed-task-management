@@ -53,6 +53,7 @@ private:
     std::vector<std::shared_ptr<Node>> nodes;
     std::unique_ptr<Scheduler> scheduler;
     SchedulerType currentSchedulerType;
+    std::string currentSchedulerName; // 👈 Add this
 
     mutable std::mutex mtx;
     int nextTaskId;

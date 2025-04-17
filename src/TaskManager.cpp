@@ -55,6 +55,7 @@ void TaskManager::addNode() {
 }
 
 void TaskManager::removeNode(int id) {
+    std::cout << "im hereeerererererere" << std::endl;
     std::lock_guard<std::mutex> lock(mtx);
     for (auto it = nodes.begin(); it != nodes.end(); ++it) {
         if ((*it)->getId() == id) {
@@ -67,6 +68,7 @@ void TaskManager::removeNode(int id) {
             
             // Reassign pending tasks to other nodes
             for (auto& task : nodeTasks) {
+                std::cout << "checking now!!!1111!!!!" << std::endl;    
                 if (task->getStatus() == TaskStatus::Pending) {
                     int nodeIndex = scheduler->pickNode(nodes);
                     if (nodeIndex != -1) {
@@ -85,24 +87,59 @@ void TaskManager::removeNode(int id) {
     }
 }
 
+
 void TaskManager::setScheduler(SchedulerType type) {
-    std::lock_guard<std::mutex> lock(mtx);
-    
-    switch (type) {
-        case SchedulerType::FIFO:
-            scheduler = std::make_unique<FIFOScheduler>();
-            break;
-        case SchedulerType::RoundRobin:
-            scheduler = std::make_unique<RoundRobinScheduler>();
-            break;
-        case SchedulerType::LoadBalanced:
-            scheduler = std::make_unique<LoadBalancedScheduler>();
-            break;
+    try {
+        std::lock_guard<std::mutex> lock(mtx);
+        
+        std::cout << "Changing scheduler to type: " << static_cast<int>(type) << std::endl;
+        
+        // Create the new scheduler
+        std::unique_ptr<Scheduler> newScheduler;
+        switch (type) {
+            case SchedulerType::FIFO:
+                std::cout << "Creating FIFO scheduler" << std::endl;
+                newScheduler = std::make_unique<FIFOScheduler>();
+                currentSchedulerName = "FIFO";
+                break;
+            case SchedulerType::RoundRobin:
+                std::cout << "Creating RoundRobin scheduler" << std::endl;
+                newScheduler = std::make_unique<RoundRobinScheduler>();
+                currentSchedulerName = "RoundRobin";
+                break;
+            case SchedulerType::LoadBalanced:
+                std::cout << "Creating LoadBalanced scheduler" << std::endl;
+                newScheduler = std::make_unique<LoadBalancedScheduler>();
+                currentSchedulerName = "LoadBalanced";
+                break;
+            default:
+                std::cout << "Unknown scheduler type, defaulting to FIFO" << std::endl;
+                newScheduler = std::make_unique<FIFOScheduler>();
+                currentSchedulerName = "FIFO";
+                type = SchedulerType::FIFO;
+                break;
+        }
+
+        
+        // Now assign the new scheduler
+        scheduler = std::move(newScheduler);
+        currentSchedulerType = type;
+        std::cout << "Scheduler successfully changed to " << getCurrentSchedulerName() << std::endl;
+    } 
+    catch (const std::exception& e) {
+        std::cerr << "Exception in setScheduler: " << e.what() << std::endl;
+        // Fallback to FIFO scheduler in case of error
+        scheduler = std::make_unique<FIFOScheduler>();
+        currentSchedulerType = SchedulerType::FIFO;
+    } 
+    catch (...) {
+        std::cerr << "Unknown exception in setScheduler" << std::endl;
+        // Fallback to FIFO scheduler in case of error
+        scheduler = std::make_unique<FIFOScheduler>();
+        currentSchedulerType = SchedulerType::FIFO;
     }
-    
-    currentSchedulerType = type;
-    std::cout << "Scheduler changed to " << getCurrentSchedulerName() << std::endl;
 }
+
 
 SchedulerType TaskManager::getCurrentSchedulerType() const {
     std::lock_guard<std::mutex> lock(mtx);
@@ -110,18 +147,7 @@ SchedulerType TaskManager::getCurrentSchedulerType() const {
 }
 
 std::string TaskManager::getCurrentSchedulerName() const {
-    std::lock_guard<std::mutex> lock(mtx);
-    
-    switch (currentSchedulerType) {
-        case SchedulerType::FIFO:
-            return "First-In-First-Out";
-        case SchedulerType::RoundRobin:
-            return "Round Robin";
-        case SchedulerType::LoadBalanced:
-            return "Load Balanced";
-        default:
-            return "Unknown";
-    }
+    return currentSchedulerName;
 }
 
 std::vector<std::string> TaskManager::getAllNodesInfo() const {
