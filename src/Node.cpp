@@ -2,8 +2,13 @@
 #include <chrono>
 #include <iostream>
 #include <algorithm>
+#include "../include/TaskManager.h"
 
 Node::Node(int id) : id(id), busy(false), running(false), taskCount(0) {}
+
+Node::Node(int id, TaskManager* manager) 
+    : id(id), busy(false), running(false), taskCount(0), taskManager(manager) {}
+
 
 void Node::start() {
     running = true;
@@ -93,5 +98,21 @@ void Node::processTasks() {
         }
 
         busy = false;
+
+        // Check for pending tasks in the TaskManager and assign if possible
+        if (running) { //check if the node is still running
+             std::lock_guard<std::mutex> managerLock(taskManager->mtx); //added lock
+            for (auto& pendingTask : taskManager->tasks) {
+                if (pendingTask->getStatus() == TaskStatus::Pending) {
+                    int nodeIndex = taskManager->scheduler->pickNode(taskManager->nodes);
+                    if (nodeIndex == id-1) { //make sure the task is assigned to the current node.
+                        addTask(pendingTask);
+                        std::cout << "Reassigned pending task '" << pendingTask->getName()
+                                  << "' to Node " << id << std::endl;
+                        break; // Assign only one task at a time
+                    }
+                }
+            }
+        }
     }
 }

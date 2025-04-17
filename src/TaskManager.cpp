@@ -1,4 +1,4 @@
-#include "../include/TaskManager.h"
+#include "TaskManager.h"
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -35,7 +35,7 @@ void TaskManager::addTask(const std::string& name, int duration) {
 
 void TaskManager::addNode() {
     std::lock_guard<std::mutex> lock(mtx);
-    auto node = std::make_shared<Node>(nextNodeId++);
+    auto node = std::make_shared<Node>(nextNodeId++, this); 
     node->start();
     nodes.push_back(node);
     
@@ -55,7 +55,6 @@ void TaskManager::addNode() {
 }
 
 void TaskManager::removeNode(int id) {
-    std::cout << "im hereeerererererere" << std::endl;
     std::lock_guard<std::mutex> lock(mtx);
     for (auto it = nodes.begin(); it != nodes.end(); ++it) {
         if ((*it)->getId() == id) {
@@ -68,7 +67,6 @@ void TaskManager::removeNode(int id) {
             
             // Reassign pending tasks to other nodes
             for (auto& task : nodeTasks) {
-                std::cout << "checking now!!!1111!!!!" << std::endl;    
                 if (task->getStatus() == TaskStatus::Pending) {
                     int nodeIndex = scheduler->pickNode(nodes);
                     if (nodeIndex != -1) {
@@ -233,3 +231,4 @@ bool TaskManager::resumeTask(int taskId) {
     std::cout << "Resume functionality not implemented yet" << std::endl;
     return false;
 }
+

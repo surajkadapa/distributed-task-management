@@ -84,6 +84,34 @@ int main() {
             res.end();
         });
 
+    // --- New Route for remove_node ---
+    CROW_ROUTE(app, "/remove_node").methods("POST"_method)(
+        [manager](const crow::request& req, crow::response& res) {
+            try {
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    res.code = 400;
+                    res.write("Invalid JSON");
+                    add_cors_headers(res);
+                    res.end();
+                    return;
+                }
+
+                int nodeId = body["node_id"].i();
+                manager->removeNode(nodeId);
+                res.code = 200;
+                res.write("Node removed");
+                add_cors_headers(res);
+                res.end();
+            } catch (const std::exception& e) {
+                res.code = 500;
+                res.write(std::string("Error removing node: ") + e.what());
+                add_cors_headers(res);
+                res.end();
+            }
+        });
+
+
     // --- Actual Routes ---
     CROW_ROUTE(app, "/add_node").methods("POST"_method)(
         [manager](const crow::request&, crow::response& res) {

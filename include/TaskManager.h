@@ -39,23 +39,23 @@ public:
     std::vector<std::shared_ptr<Task>> getAllTasks() const;
     std::vector<std::shared_ptr<Node>> getAllNodes() const;
     std::vector<std::string> getAllNodesInfo() const;
-    
+    mutable std::mutex mtx;
     // Task assignment
     bool assignTaskToNode(int taskId, int nodeId);
-    
+    std::vector<std::shared_ptr<Task>> tasks;
+    std::vector<std::shared_ptr<Node>> nodes;
+    std::unique_ptr<Scheduler> scheduler;
     // Task status updates
     bool cancelTask(int taskId);
     bool pauseTask(int taskId);
     bool resumeTask(int taskId);
 
 private:
-    std::vector<std::shared_ptr<Task>> tasks;
-    std::vector<std::shared_ptr<Node>> nodes;
-    std::unique_ptr<Scheduler> scheduler;
+
+
     SchedulerType currentSchedulerType;
     std::string currentSchedulerName; // 👈 Add this
 
-    mutable std::mutex mtx;
     int nextTaskId;
     int nextNodeId;
 };

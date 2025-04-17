@@ -7,6 +7,9 @@
 #include <memory>
 #include <atomic>
 #include "Task.h"
+#include "TaskManager.h"
+
+class TaskManager;
 
 
 class Node {
@@ -16,16 +19,16 @@ class Node {
         std::atomic<bool> running;
         std::thread worker;
         std::queue<std::shared_ptr<Task>> taskQueue;
+        TaskManager* taskManager;
         mutable std::mutex mtx;
         std::condition_variable cv;
-    
         // NEW FIELDS
         int taskCount = 0;
         std::vector<int> taskIDs;
     
     public:
         explicit Node(int id);
-    
+        Node(int id, TaskManager* manager);
         void start();
         void stop();
         void addTask(std::shared_ptr<Task> task);
