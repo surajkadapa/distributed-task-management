@@ -48,6 +48,23 @@ def get_nodes():
 def get_tasks():
     result = curl_get("/tasks")
     return app.response_class(result, mimetype='application/json')
+@app.route("/set_scheduler", methods=["POST"])
+def set_scheduler():
+    data = request.get_json()
+    result = curl_post("/set_scheduler", data)
+    try:
+        return app.response_class(result, mimetype='application/json')
+    except:
+        return jsonify({"message": result})
+
+@app.route("/scheduler_info", methods=["GET"])
+def get_scheduler_info():
+    result = curl_get("/scheduler_info")
+    try:
+        return app.response_class(result, mimetype='application/json')
+    except:
+        return jsonify({"type": "fifo", "name": "First-In-First-Out"})
+
 
 if __name__ == "__main__":
     print("🚀 Flask proxy running at http://localhost:5000")

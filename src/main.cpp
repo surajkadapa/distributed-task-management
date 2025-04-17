@@ -112,6 +112,89 @@ int main() {
                 add_cors_headers(res);
                 res.end();
             });
+            CROW_ROUTE(app, "/set_scheduler").methods("OPTIONS"_method)(
+                [](const crow::request&, crow::response& res) {
+                    res.code = 200;
+                    add_cors_headers(res);
+                    res.end();
+                });
+            
+            CROW_ROUTE(app, "/scheduler_info").methods("OPTIONS"_method)(
+                [](const crow::request&, crow::response& res) {
+                    res.code = 200;
+                    add_cors_headers(res);
+                    res.end();
+                });
+            
+            // --- Actual Routes ---
+            CROW_ROUTE(app, "/set_scheduler").methods("POST"_method)(
+                [manager](const crow::request& req, crow::response& res) {
+                    auto body = crow::json::load(req.body);
+                    if (!body) {
+                        res.code = 400;
+                        res.write("Invalid JSON");
+                        add_cors_headers(res);
+                        res.end();
+                        return;
+                    }
+            
+                    std::string schedulerType = body["type"].s();
+                    SchedulerType type;
+                    
+                    if (schedulerType == "fifo") {
+                        type = SchedulerType::FIFO;
+                    } else if (schedulerType == "roundrobin") {
+                        type = SchedulerType::RoundRobin;
+                    } else if (schedulerType == "loadbalanced") {
+                        type = SchedulerType::LoadBalanced;
+                    } else {
+                        res.code = 400;
+                        res.write("Invalid scheduler type");
+                        add_cors_headers(res);
+                        res.end();
+                        return;
+                    }
+                    
+                    manager->setScheduler(type);
+                    
+                    crow::json::wvalue result;
+                    result["message"] = "Scheduler updated";
+                    result["type"] = schedulerType;
+                    result["name"] = manager->getCurrentSchedulerName();
+                    
+                    res = crow::response(result);
+                    res.code = 200;
+                    add_cors_headers(res);
+                    res.end();
+                });
+            
+            CROW_ROUTE(app, "/scheduler_info").methods("GET"_method)(
+                [manager](const crow::request&, crow::response& res) {
+                    crow::json::wvalue result;
+                    
+                    SchedulerType type = manager->getCurrentSchedulerType();
+                    std::string typeName;
+                    
+                    switch (type) {
+                        case SchedulerType::FIFO:
+                            typeName = "fifo";
+                            break;
+                        case SchedulerType::RoundRobin:
+                            typeName = "roundrobin";
+                            break;
+                        case SchedulerType::LoadBalanced:
+                            typeName = "loadbalanced";
+                            break;
+                    }
+                    
+                    result["type"] = typeName;
+                    result["name"] = manager->getCurrentSchedulerName();
+                    
+                    res = crow::response(result);
+                    res.code = 200;
+                    add_cors_headers(res);
+                    res.end();
+                });
         
 
     app.port(18080).multithreaded().run();
