@@ -118,6 +118,29 @@
       background-color: var(--success-dark);
     }
     
+    .btn-warning {
+      background-color: var(--warning);
+      color: white;
+    }
+    
+    .btn-warning:hover {
+      background-color: #e67e22;
+    }
+    
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background-color: #c0392b;
+    }
+    
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 13px;
+    }
+    
     .card {
       background-color: white;
       border-radius: var(--radius);
@@ -130,6 +153,9 @@
       padding: 15px 20px;
       background-color: var(--gray-light);
       border-bottom: 1px solid var(--gray);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     
     .card-body {
@@ -284,6 +310,158 @@
       100% { transform: rotate(360deg); }
     }
     
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .db-actions {
+      margin-top: 20px;
+    }
+    
+    .db-path {
+      font-family: monospace;
+      background-color: var(--gray-light);
+      padding: 5px 10px;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1050;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+    
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--gray);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .modal-header h3 {
+      margin: 0;
+    }
+    
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--gray);
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 15px;
+      border-top: 1px solid var(--gray);
+      margin-top: 20px;
+    }
+    
+    /* Database Info Styles */
+    .db-info-section {
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .db-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .db-metric {
+      background-color: var(--gray-light);
+      padding: 10px 15px;
+      border-radius: var(--radius);
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+    }
+    
+    .db-metric-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #6c757d;
+      margin-bottom: 5px;
+    }
+    
+    .db-metric-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-dark);
+    }
+    
+    /* Task Counter Animation */
+    .counter-animation {
+      transition: color 0.3s ease;
+    }
+    
+    /* Scheduler selector */
+    .scheduler-selector {
+      display: flex;
+      align-items: center;
+      margin-left: auto;
+    }
+    
+    .scheduler-selector label {
+      margin-right: 10px;
+      margin-bottom: 0;
+    }
+    
+    .scheduler-selector select {
+      width: auto;
+      margin-bottom: 0;
+    }
+    
     @media (max-width: 768px) {
       .controls {
         flex-direction: column;
@@ -296,6 +474,15 @@
       .dashboard-overview {
         grid-template-columns: 1fr;
       }
+      
+      .db-info {
+        flex-direction: column;
+      }
+      
+      .scheduler-selector {
+        margin-top: 10px;
+        margin-left: 0;
+      }
     }
   </style>
 </head>
@@ -303,18 +490,67 @@
   <div class="container">
     <div class="header">
       <h1><i class="fas fa-brain"></i> Task Manager Dashboard</h1>
+      
+      <div class="scheduler-selector">
+        <label for="scheduler-type"><i class="fas fa-cog"></i> Scheduler:</label>
+        <select id="scheduler-type" onchange="changeScheduler(this.value)">
+          <option value="fifo">First-In-First-Out</option>
+          <option value="roundrobin">Round Robin</option>
+          <option value="loadbalanced">Load Balanced</option>
+        </select>
+      </div>
     </div>
     
     <div class="controls">
       <button class="btn btn-primary" onclick="addNode()">
         <i class="fas fa-server"></i> Add Node
       </button>
-      <button class="btn btn-primary" onclick="addTask()">
-        <i class="fas fa-tasks"></i> Add Dummy Task
+      <button class="btn btn-primary" onclick="showAddTaskModal()">
+        <i class="fas fa-tasks"></i> Add Task
       </button>
       <button class="btn btn-success" onclick="fetchData()">
         <i class="fas fa-sync-alt"></i> Refresh All
       </button>
+    </div>
+    
+    <!-- Database Status Section -->
+    <div class="card" id="databaseSection">
+      <div class="card-header">
+        <h2><i class="fas fa-database"></i> Database Status</h2>
+        <div class="btn-group">
+          <button class="btn btn-warning" onclick="refreshDbStats()">
+            <i class="fas fa-sync-alt"></i> Refresh Stats
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="db-info-section">
+          <p><strong>Database Path:</strong> <span class="db-path">taskmaster.db</span></p>
+          
+          <div class="db-info">
+            <div class="db-metric">
+              <div class="db-metric-title">Total Tasks</div>
+              <div class="db-metric-value" id="db-total-tasks">-</div>
+            </div>
+            <div class="db-metric">
+              <div class="db-metric-title">Pending Tasks</div>
+              <div class="db-metric-value" id="db-pending-tasks">-</div>
+            </div>
+            <div class="db-metric">
+              <div class="db-metric-title">Running Tasks</div>
+              <div class="db-metric-value" id="db-running-tasks">-</div>
+            </div>
+            <div class="db-metric">
+              <div class="db-metric-title">Completed Tasks</div>
+              <div class="db-metric-value" id="db-completed-tasks">-</div>
+            </div>
+            <div class="db-metric">
+              <div class="db-metric-title">Total Nodes</div>
+              <div class="db-metric-value" id="db-total-nodes">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     
     <div class="dashboard-overview" id="overview">
@@ -344,6 +580,28 @@
     </div>
   </div>
   
+  <!-- Add Task Modal -->
+  <div id="addTaskModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fas fa-plus-circle"></i> Add New Task</h3>
+        <span class="close" onclick="closeAddTaskModal()">&times;</span>
+      </div>
+      <div class="form-group">
+        <label for="task-name">Task Name:</label>
+        <input type="text" id="task-name" placeholder="Enter task name" required>
+      </div>
+      <div class="form-group">
+        <label for="task-duration">Duration (seconds):</label>
+        <input type="number" id="task-duration" placeholder="Enter duration in seconds" min="1" max="300" value="10" required>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeAddTaskModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddTask()">Add Task</button>
+      </div>
+    </div>
+  </div>
+  
   <div class="notifications" id="notifications">
     <!-- Notifications will appear here -->
   </div>
@@ -352,6 +610,8 @@
     // Initialize the dashboard on load
     document.addEventListener('DOMContentLoaded', () => {
       fetchData();
+      fetchDbStats();
+      fetchCurrentScheduler();
     });
     
     // Main data fetch function to get both tasks and nodes
@@ -359,6 +619,76 @@
       fetchTasks();
       fetchNodes();
       updateOverview();
+    }
+    
+    // Fetch database statistics
+    async function fetchDbStats() {
+      try {
+        const response = await fetch("http://localhost:5000/db_stats");
+        const data = await response.json();
+        
+        if (data.error) {
+          showNotification(`Failed to fetch database stats: ${data.error}`, 'error');
+          return;
+        }
+        
+        // Update the UI with the stats
+        document.getElementById('db-total-tasks').textContent = data.total_tasks;
+        document.getElementById('db-pending-tasks').textContent = data.pending_tasks;
+        document.getElementById('db-running-tasks').textContent = data.running_tasks;
+        document.getElementById('db-completed-tasks').textContent = data.completed_tasks;
+        document.getElementById('db-total-nodes').textContent = data.total_nodes;
+        
+      } catch (err) {
+        showNotification(`Failed to fetch database stats: ${err}`, 'error');
+      }
+    }
+    
+    function refreshDbStats() {
+      fetchDbStats();
+      showNotification("Database statistics refreshed");
+    }
+    
+    // Fetch current scheduler
+    async function fetchCurrentScheduler() {
+      try {
+        const response = await fetch("http://localhost:5000/scheduler_info");
+        const data = await response.json();
+        
+        if (data.error) {
+          showNotification(`Failed to fetch scheduler info: ${data.error}`, 'error');
+          return;
+        }
+        
+        // Update the scheduler selector
+        document.getElementById('scheduler-type').value = data.type;
+        
+      } catch (err) {
+        showNotification(`Failed to fetch scheduler info: ${err}`, 'error');
+      }
+    }
+    
+    // Change the scheduler
+    async function changeScheduler(schedulerType) {
+      try {
+        const response = await fetch("http://localhost:5000/set_scheduler", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: schedulerType })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          showNotification(`Failed to change scheduler: ${data.error}`, 'error');
+          return;
+        }
+        
+        showNotification(`Scheduler changed to ${data.name}`);
+        
+      } catch (err) {
+        showNotification(`Failed to change scheduler: ${err}`, 'error');
+      }
     }
     
     // Helper function to show notifications
@@ -441,6 +771,10 @@
             <p>Completed Tasks</p>
           </div>
         `;
+        
+        // Also update the database stats
+        fetchDbStats();
+        
       } catch (err) {
         showNotification(`Failed to update overview: ${err}`, 'error');
       }
@@ -465,8 +799,61 @@
         showNotification(`Failed to add node: ${err}`, 'error');
       }
     }
+    
+    // Remove a node
+    async function removeNode(nodeId) {
+      if (!confirm(`Are you sure you want to remove Node ${nodeId}?`)) {
+        return;
+      }
+      
+      try {
+        document.getElementById('nodeSection').querySelector('.card-body').innerHTML = `
+          <div class="loading">
+            <i class="fas fa-spinner"></i>
+          </div>
+        `;
+        
+        const res = await fetch("http://localhost:5000/remove_node", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ node_id: nodeId })
+        });
+        const data = await res.json();
+        showNotification(`Node ${nodeId} removed successfully!`);
+        fetchNodes();
+        updateOverview();
+        fetchDbStats();
+      } catch (err) {
+        showNotification(`Failed to remove node: ${err}`, 'error');
+      }
+    }
 
-    async function addTask() {
+    // Show add task modal
+    function showAddTaskModal() {
+      document.getElementById('addTaskModal').style.display = 'block';
+      document.getElementById('task-name').focus();
+    }
+    
+    // Close add task modal
+    function closeAddTaskModal() {
+      document.getElementById('addTaskModal').style.display = 'none';
+    }
+    
+    // Submit add task form
+    async function submitAddTask() {
+      const name = document.getElementById('task-name').value;
+      const duration = parseInt(document.getElementById('task-duration').value);
+      
+      if (!name) {
+        showNotification("Task name is required", 'error');
+        return;
+      }
+      
+      if (isNaN(duration) || duration < 1) {
+        showNotification("Duration must be a positive number", 'error');
+        return;
+      }
+      
       try {
         document.getElementById('taskSection').querySelector('.card-body').innerHTML = `
           <div class="loading">
@@ -474,13 +861,15 @@
           </div>
         `;
         
+        closeAddTaskModal();
+        
         const res = await fetch("http://localhost:5000/add_task", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "Task-" + Math.floor(Math.random() * 1000), duration: Math.floor(Math.random() * 20) + 5 })
+          body: JSON.stringify({ name, duration })
         });
         const data = await res.json();
-        showNotification("Task added successfully!");
+        showNotification(`Task "${name}" added successfully!`);
         fetchTasks();
         updateOverview();
       } catch (err) {
@@ -504,7 +893,7 @@
           taskBody.innerHTML = `
             <div style="text-align: center; padding: 20px; color: #6c757d;">
               <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 10px;"></i>
-              <p>No tasks available. Click "Add Dummy Task" to create one.</p>
+              <p>No tasks available. Click "Add Task" to create one.</p>
             </div>
           `;
           return;
@@ -514,6 +903,7 @@
           <thead>
             <tr>
               <th>#</th>
+              <th>ID</th>
               <th>Task Name</th>
               <th>Duration (s)</th>
               <th>Status</th>
@@ -524,6 +914,7 @@
         data.forEach((task, i) => {
           html += `<tr>
               <td>${i + 1}</td>
+              <td>${task.id}</td>
               <td>${task.name}</td>
               <td>${task.duration}</td>
               <td>${getStatusBadge(task.status)}</td>
@@ -572,6 +963,7 @@
               <th>Node ID</th>
               <th>Tasks Assigned</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>`;
@@ -582,6 +974,11 @@
               <td>${node.id}</td>
               <td>${node.task_count}</td>
               <td><span class="badge badge-running"><i class="fas fa-circle"></i> Active</span></td>
+              <td>
+                <button class="btn btn-sm btn-danger" onclick="removeNode(${node.id})">
+                  <i class="fas fa-trash"></i> Remove
+                </button>
+              </td>
             </tr>`;
         });
 
@@ -597,6 +994,21 @@
         `;
       }
     }
+    
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+      const modal = document.getElementById('addTaskModal');
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+    
+    // Handle Enter key in the task modal
+    document.getElementById('task-duration').addEventListener('keyup', function(event) {
+      if (event.key === 'Enter') {
+        submitAddTask();
+      }
+    });
   </script>
 </body>
 </html>

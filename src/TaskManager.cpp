@@ -4,16 +4,18 @@
 #include "../include/FIFOScheduler.h"
 #include "../include/RoundRobinScheduler.h"
 #include "../include/LoadBalancedScheduler.h"
+#include "../include/DatabaseManager.h"
 #include <sstream>
 #include <iostream>
 #include <algorithm>
 
-TaskManager::TaskManager(std::unique_ptr<Scheduler> scheduler)
+TaskManager::TaskManager(std::unique_ptr<Scheduler> scheduler, const std::string& dbPath)
     : scheduler(std::move(scheduler)), 
-      currentSchedulerType(SchedulerType::FIFO), // Default to FIFO
-      currentSchedulerName("FIFO"), // Set default name
+      currentSchedulerType(SchedulerType::FIFO),
+      currentSchedulerName("FIFO"),
       nextTaskId(1), 
-      nextNodeId(1) {}
+      nextNodeId(1),
+      dbManager(std::make_shared<DatabaseManager>(dbPath)) {}
 
 TaskManager::~TaskManager() {
     // Stop all nodes when the manager is destroyed
@@ -22,17 +24,65 @@ TaskManager::~TaskManager() {
     }
 }
 
+bool TaskManager::initialize() {
+    std::cout << "Initializing TaskManager..." << std::endl;
+    
+    // Initialize the database
+    if (!dbManager->initialize()) {
+        std::cerr << "Failed to initialize database." << std::endl;
+        return false;
+    }
+    
+    // Get max IDs from the database
+    nextTaskId = dbManager->getMaxTaskId() + 1;
+    nextNodeId = dbManager->getMaxNodeId() + 1;
+    
+    // Load tasks from database
+    tasks = dbManager->loadAllTasks();
+    std::cout << "Loaded " << tasks.size() << " tasks from database." << std::endl;
+    
+    // Load nodes from database
+    nodes = dbManager->loadAllNodes(this);
+    std::cout << "Loaded " << nodes.size() << " nodes from database." << std::endl;
+    
+    // Start all nodes
+    for (auto& node : nodes) {
+        node->start();
+    }
+    
+    // Try to assign any pending tasks
+    for (auto& task : tasks) {
+        if (task->getStatus() == TaskStatus::Pending) {
+            int nodeIndex = scheduler->pickNode(nodes);
+            if (nodeIndex != -1) {
+                nodes[nodeIndex]->addTask(task);
+                dbManager->assignTaskToNode(task->getId(), nodes[nodeIndex]->getId());
+            }
+        }
+    }
+    
+    std::cout << "TaskManager initialized successfully." << std::endl;
+    return true;
+}
+
 void TaskManager::addTask(const std::string& name, int duration) {
     std::lock_guard<std::mutex> lock(mtx);
     
     auto task = std::make_shared<Task>(nextTaskId++, name, duration);
     tasks.push_back(task);
     
+    // Save the task to the database
+    dbManager->saveTask(task);
+    
     // Try to assign the task to a node immediately
     int nodeIndex = scheduler->pickNode(nodes);
     
     if (nodeIndex != -1) {
         nodes[nodeIndex]->addTask(task);
+        
+        // Record the assignment in the database
+        dbManager->assignTaskToNode(task->getId(), nodes[nodeIndex]->getId());
+        
         std::cout << "Assigned task '" << name << "' to Node " << nodes[nodeIndex]->getId() << std::endl;
     } else {
         std::cout << "No available nodes for task '" << name << "' - task will remain pending\n";
@@ -45,6 +95,9 @@ void TaskManager::addNode() {
     node->start();
     nodes.push_back(node);
     
+    // Save the node to the database
+    dbManager->saveNode(node);
+    
     // After adding a new node, check if there are any pending tasks that can be assigned
     for (auto& task : tasks) {
         if (task->getStatus() == TaskStatus::Pending) {
@@ -52,6 +105,10 @@ void TaskManager::addNode() {
             int nodeIndex = scheduler->pickNode(nodes);
             if (nodeIndex != -1) {
                 nodes[nodeIndex]->addTask(task);
+                
+                // Record the assignment in the database
+                dbManager->assignTaskToNode(task->getId(), nodes[nodeIndex]->getId());
+                
                 std::cout << "Reassigned pending task '" << task->getName() 
                           << "' to Node " << nodes[nodeIndex]->getId() << std::endl;
                 break; // Assign one task at a time to avoid overloading the new node
@@ -69,6 +126,10 @@ void TaskManager::removeNode(int id) {
             
             // Stop the node
             (*it)->stop();
+            
+            // Remove from database
+            dbManager->deleteNode(id);
+            
             nodes.erase(it);
             
             // Reassign pending tasks to other nodes
@@ -77,6 +138,10 @@ void TaskManager::removeNode(int id) {
                     int nodeIndex = scheduler->pickNode(nodes);
                     if (nodeIndex != -1) {
                         nodes[nodeIndex]->addTask(task);
+                        
+                        // Update assignment in database
+                        dbManager->assignTaskToNode(task->getId(), nodes[nodeIndex]->getId());
+                        
                         std::cout << "Reassigned task from removed node '" << task->getName() 
                                   << "' to Node " << nodes[nodeIndex]->getId() << std::endl;
                     } else {
@@ -90,7 +155,6 @@ void TaskManager::removeNode(int id) {
         }
     }
 }
-
 
 void TaskManager::setScheduler(SchedulerType type) {
     try {
@@ -124,7 +188,6 @@ void TaskManager::setScheduler(SchedulerType type) {
                 break;
         }
 
-        
         // Now assign the new scheduler
         scheduler = std::move(newScheduler);
         currentSchedulerType = type;
@@ -143,7 +206,6 @@ void TaskManager::setScheduler(SchedulerType type) {
         currentSchedulerType = SchedulerType::FIFO;
     }
 }
-
 
 SchedulerType TaskManager::getCurrentSchedulerType() const {
     std::lock_guard<std::mutex> lock(mtx);
@@ -198,6 +260,10 @@ bool TaskManager::assignTaskToNode(int taskId, int nodeId) {
     
     // Assign the task
     (*nodeIt)->addTask(*taskIt);
+    
+    // Update the assignment in the database
+    dbManager->assignTaskToNode(taskId, nodeId);
+    
     std::cout << "Manually assigned task '" << (*taskIt)->getName() 
               << "' to Node " << nodeId << std::endl;
     
@@ -215,10 +281,12 @@ bool TaskManager::cancelTask(int taskId) {
         return false; // Task not found or already completed
     }
     
-    // For now, just mark it as completed
-    // In a more sophisticated system, you might want to actually cancel the task
-    // and stop it from executing on the node
+    // Mark it as completed
     (*taskIt)->setStatus(TaskStatus::Completed);
+    
+    // Update the task status in the database
+    dbManager->updateTaskStatus(taskId, TaskStatus::Completed);
+    
     std::cout << "Canceled task '" << (*taskIt)->getName() << "'" << std::endl;
     
     return true;
@@ -236,4 +304,25 @@ bool TaskManager::resumeTask(int taskId) {
     // For now, just a placeholder
     std::cout << "Resume functionality not implemented yet" << std::endl;
     return false;
+}
+
+// Database statistics methods
+int TaskManager::getTotalTaskCount() const {
+    return dbManager->getTaskCount();
+}
+
+int TaskManager::getPendingTaskCount() const {
+    return dbManager->getPendingTaskCount();
+}
+
+int TaskManager::getRunningTaskCount() const {
+    return dbManager->getRunningTaskCount();
+}
+
+int TaskManager::getCompletedTaskCount() const {
+    return dbManager->getCompletedTaskCount();
+}
+
+int TaskManager::getTotalNodeCount() const {
+    return dbManager->getNodeCount();
 }

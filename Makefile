@@ -11,7 +11,7 @@ WT_INC = /usr/local/include -Iinclude
 WT_LIB = /usr/local/lib
 
 # Libraries
-LIBS = -lboost_system -lpthread
+LIBS = -lboost_system -lpthread -lsqlite3
 
 # List of all source files
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)

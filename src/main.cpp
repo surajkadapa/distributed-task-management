@@ -38,9 +38,15 @@ int main() {
     crow::SimpleApp app;
     app_ptr = &app;
     
-    // Initialize TaskManager
+    // Initialize TaskManager with database
     auto scheduler = std::make_unique<FIFOScheduler>();
-    auto manager = std::make_shared<TaskManager>(std::move(scheduler));
+    auto manager = std::make_shared<TaskManager>(std::move(scheduler), "taskmaster.db");
+    
+    // Initialize the TaskManager (load from database)
+    if (!manager->initialize()) {
+        std::cerr << "Failed to initialize TaskManager with database" << std::endl;
+        return 1;
+    }
 
     // --- CORS preflight handlers ---
     CROW_ROUTE(app, "/add_node").methods("OPTIONS"_method)(
@@ -84,6 +90,13 @@ int main() {
             add_cors_headers(res);
             res.end();
         });
+        
+    CROW_ROUTE(app, "/db_stats").methods("OPTIONS"_method)(
+        [](const crow::request&, crow::response& res) {
+            res.code = 200;
+            add_cors_headers(res);
+            res.end();
+        });
 
     // --- New Route for remove_node ---
     CROW_ROUTE(app, "/remove_node").methods("POST"_method)(
@@ -118,8 +131,17 @@ int main() {
         [manager](const crow::request&, crow::response& res) {
             try {
                 manager->addNode();
+                
+                // Return the newly created node ID
+                auto nodes = manager->getAllNodes();
+                int newNodeId = nodes.empty() ? 0 : nodes.back()->getId();
+                
+                crow::json::wvalue result;
+                result["message"] = "Node added";
+                result["node_id"] = newNodeId;
+                
+                res = crow::response(result);
                 res.code = 200;
-                res.write("Node added");
                 add_cors_headers(res);
                 res.end();
             } catch (const std::exception& e) {
@@ -145,8 +167,15 @@ int main() {
                 std::string name = body["name"].s();
                 int duration = body["duration"].i();
                 manager->addTask(name, duration);
+                
+                // Return success message
+                crow::json::wvalue result;
+                result["message"] = "Task added successfully";
+                result["name"] = name;
+                result["duration"] = duration;
+                
+                res = crow::response(result);
                 res.code = 200;
-                res.write("Task added");
                 add_cors_headers(res);
                 res.end();
             } catch (const std::exception& e) {
@@ -164,6 +193,7 @@ int main() {
                 crow::json::wvalue result;
                 int i = 0;
                 for (const auto& task : tasks) {
+                    result[i]["id"] = task->getId();
                     result[i]["name"] = task->getName();
                     result[i]["duration"] = task->getDuration();
                     result[i]["status"] = static_cast<int>(task->getStatus());
@@ -306,6 +336,30 @@ int main() {
             }
         });
 
+    // New route for database statistics
+    CROW_ROUTE(app, "/db_stats").methods("GET"_method)(
+        [manager](const crow::request&, crow::response& res) {
+            try {
+                crow::json::wvalue result;
+                result["total_tasks"] = manager->getTotalTaskCount();
+                result["pending_tasks"] = manager->getPendingTaskCount();
+                result["running_tasks"] = manager->getRunningTaskCount();
+                result["completed_tasks"] = manager->getCompletedTaskCount();
+                result["total_nodes"] = manager->getTotalNodeCount();
+                
+                // Set the response
+                res = crow::response(result);
+                res.code = 200;
+                add_cors_headers(res);
+                res.end();
+            } catch (const std::exception& e) {
+                res.code = 500;
+                res.write(std::string("Error getting database stats: ") + e.what());
+                add_cors_headers(res);
+                res.end();
+            }
+        });
+
     // Add health check endpoint
     CROW_ROUTE(app, "/health").methods("GET"_method)(
         [](const crow::request&, crow::response& res) {
@@ -314,9 +368,6 @@ int main() {
             add_cors_headers(res);
             res.end();
         });
-
-    // Configure the server with a larger thread pool
-    // app.concurrency(16);  // Use 16 threads - uncomment if your Crow version supports this
 
     std::cout << "Starting Crow server on port 18080..." << std::endl;
     

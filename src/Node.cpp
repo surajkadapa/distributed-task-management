@@ -1,6 +1,7 @@
 #include "../include/Node.h"
 #include "../include/TaskManager.h"  // This is needed for Node.cpp to access TaskManager methods
 #include "../include/Scheduler.h"
+#include "../include/DatabaseManager.h" 
 #include <chrono>
 #include <iostream>
 #include <algorithm>
@@ -28,6 +29,12 @@ void Node::addTask(std::shared_ptr<Task> task) {
         taskQueue.push(task);
         taskIDs.push_back(task->getId());  // Track task ID
         taskCount++;
+        
+        // Update node task count in database if task manager is available
+        if (taskManager && taskManager->getDbManager()) {
+            taskManager->getDbManager()->updateNodeTaskCount(id, taskCount);
+        }
+        
         std::cout << "Task ID: " << task->getId() << " added to Node " << id << std::endl;
     }
     cv.notify_one();
@@ -43,7 +50,6 @@ int Node::getId() const {
 
 int Node::getTaskCount() const {
     std::lock_guard<std::mutex> lock(mtx);
-    std::cout << "Node " << id << " task count: " << taskCount << std::endl;
     return taskCount;
 }
 
@@ -77,20 +83,39 @@ void Node::processTasks() {
                 task = taskQueue.front();
                 taskQueue.pop();
                 busy = true;
-                task->setStatus(TaskStatus::Running);  // Update status to Running
-                std::cout << "Processing Task ID: " << task->getId() << std::endl;
+                task->setStatus(TaskStatus::Running);
+                
+                // Update task status in database if task manager is available
+                if (taskManager && taskManager->getDbManager()) {
+                    taskManager->getDbManager()->updateTaskStatus(task->getId(), TaskStatus::Running);
+                }
+                
+                std::cout << "Processing Task ID: " << task->getId() << " on Node " << id << std::endl;
             }
         }
 
         if (task) {
             std::this_thread::sleep_for(std::chrono::seconds(task->getDuration()));
-            task->setStatus(TaskStatus::Completed);  // Update status to Completed
-            std::cout << "Task ID: " << task->getId() << " Completed." << std::endl;
+            task->setStatus(TaskStatus::Completed);
+            
+            // Update task status in database if task manager is available
+            if (taskManager && taskManager->getDbManager()) {
+                taskManager->getDbManager()->updateTaskStatus(task->getId(), TaskStatus::Completed);
+            }
+            
+            std::cout << "Task ID: " << task->getId() << " Completed on Node " << id << std::endl;
 
             {
                 std::lock_guard<std::mutex> lock(mtx);
                 if (taskCount > 0) {
                     taskCount--;
+                    
+                    // Update node task count in database if task manager is available
+                    if (taskManager && taskManager->getDbManager()) {
+                        taskManager->getDbManager()->updateNodeTaskCount(id, taskCount);
+                        taskManager->getDbManager()->removeTaskFromNode(task->getId(), id);
+                    }
+                    
                     // Remove from taskIDs
                     taskIDs.erase(std::remove(taskIDs.begin(), taskIDs.end(), task->getId()), taskIDs.end());
                     std::cout << "Node " << id << " task count decremented. Current count: " << taskCount << std::endl;
@@ -101,13 +126,20 @@ void Node::processTasks() {
         busy = false;
 
         // Check for pending tasks in the TaskManager and assign if possible
-        if (running && taskManager) { //check if the node is still running and taskManager is valid
-            std::lock_guard<std::mutex> managerLock(taskManager->mtx); //added lock
+        if (running && taskManager) {
+            std::lock_guard<std::mutex> managerLock(taskManager->mtx);
             for (auto& pendingTask : taskManager->tasks) {
                 if (pendingTask->getStatus() == TaskStatus::Pending) {
                     int nodeIndex = taskManager->scheduler->pickNode(taskManager->nodes);
-                    if (nodeIndex == id-1) { //make sure the task is assigned to the current node.
+                    if (nodeIndex >= 0 && nodeIndex < static_cast<int>(taskManager->nodes.size()) && 
+                        taskManager->nodes[nodeIndex]->getId() == id) {
                         addTask(pendingTask);
+                        
+                        // Record task assignment in database
+                        if (taskManager->getDbManager()) {
+                            taskManager->getDbManager()->assignTaskToNode(pendingTask->getId(), id);
+                        }
+                        
                         std::cout << "Reassigned pending task '" << pendingTask->getName()
                                   << "' to Node " << id << std::endl;
                         break; // Assign only one task at a time

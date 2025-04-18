@@ -112,6 +112,30 @@ def get_scheduler_info():
     except:
         return jsonify({"type": "fifo", "name": "First-In-First-Out"})
 
+# Add a route for database statistics
+@app.route("/db_stats", methods=["GET"])
+def get_db_stats():
+    result = request_get("/db_stats")
+    try:
+        return app.response_class(result, mimetype='application/json')
+    except:
+        return jsonify({
+            "total_tasks": 0,
+            "pending_tasks": 0,
+            "running_tasks": 0,
+            "completed_tasks": 0,
+            "total_nodes": 0
+        })
+    
+@app.route("/remove_node", methods=["POST"])
+def remove_node():
+    data = request.get_json()
+    result = request_post("/remove_node", data)
+    try:
+        return jsonify(json.loads(result))
+    except:
+        return jsonify({"message": result})
+
 # Add a health check endpoint
 @app.route("/health", methods=["GET"])
 def health_check():
