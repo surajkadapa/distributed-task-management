@@ -1,4 +1,9 @@
-#include "TaskManager.h"
+#include "../include/TaskManager.h"
+#include "../include/Node.h"
+#include "../include/Scheduler.h"
+#include "../include/FIFOScheduler.h"
+#include "../include/RoundRobinScheduler.h"
+#include "../include/LoadBalancedScheduler.h"
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -6,6 +11,7 @@
 TaskManager::TaskManager(std::unique_ptr<Scheduler> scheduler)
     : scheduler(std::move(scheduler)), 
       currentSchedulerType(SchedulerType::FIFO), // Default to FIFO
+      currentSchedulerName("FIFO"), // Set default name
       nextTaskId(1), 
       nextNodeId(1) {}
 
@@ -231,4 +237,3 @@ bool TaskManager::resumeTask(int taskId) {
     std::cout << "Resume functionality not implemented yet" << std::endl;
     return false;
 }
-

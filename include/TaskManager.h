@@ -2,15 +2,17 @@
 #define TASKMANAGER_H
 
 #include "Task.h"
-#include "Node.h"
-#include "Scheduler.h"
-#include "FIFOScheduler.h"
-#include "RoundRobinScheduler.h"
-#include "LoadBalancedScheduler.h"
 #include <memory>
 #include <mutex>
 #include <vector>
 #include <string>
+
+// Forward declarations
+class Node;
+class Scheduler;
+class FIFOScheduler;
+class RoundRobinScheduler;
+class LoadBalancedScheduler;
 
 enum class SchedulerType { 
     FIFO, 
@@ -51,10 +53,8 @@ public:
     bool resumeTask(int taskId);
 
 private:
-
-
     SchedulerType currentSchedulerType;
-    std::string currentSchedulerName; // 👈 Add this
+    std::string currentSchedulerName;
 
     int nextTaskId;
     int nextNodeId;

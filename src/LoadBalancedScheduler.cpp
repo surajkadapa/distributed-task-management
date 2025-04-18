@@ -1,5 +1,6 @@
 // LoadBalancedScheduler.cpp
 #include "../include/LoadBalancedScheduler.h"
+#include "../include/Node.h"
 #include <algorithm>
 
 int LoadBalancedScheduler::pickNode(const std::vector<std::shared_ptr<Node>>& nodes) {

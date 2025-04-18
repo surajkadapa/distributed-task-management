@@ -1,8 +1,9 @@
 #include "../include/Node.h"
+#include "../include/TaskManager.h"  // This is needed for Node.cpp to access TaskManager methods
+#include "../include/Scheduler.h"
 #include <chrono>
 #include <iostream>
 #include <algorithm>
-#include "../include/TaskManager.h"
 
 Node::Node(int id) : id(id), busy(false), running(false), taskCount(0) {}
 
@@ -100,8 +101,8 @@ void Node::processTasks() {
         busy = false;
 
         // Check for pending tasks in the TaskManager and assign if possible
-        if (running) { //check if the node is still running
-             std::lock_guard<std::mutex> managerLock(taskManager->mtx); //added lock
+        if (running && taskManager) { //check if the node is still running and taskManager is valid
+            std::lock_guard<std::mutex> managerLock(taskManager->mtx); //added lock
             for (auto& pendingTask : taskManager->tasks) {
                 if (pendingTask->getStatus() == TaskStatus::Pending) {
                     int nodeIndex = taskManager->scheduler->pickNode(taskManager->nodes);

@@ -1,6 +1,7 @@
 #include "TaskManager.h"
 #include "FIFOScheduler.h"
 #include "../include/crow.h"
+#include "Node.h"
 #include <string>
 #include <memory>
 #include <signal.h>

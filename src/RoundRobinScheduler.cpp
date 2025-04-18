@@ -1,4 +1,5 @@
 #include "../include/RoundRobinScheduler.h"
+#include "../include/Node.h"
 
 RoundRobinScheduler::RoundRobinScheduler() : lastAssignedIndex(0) {}
 
