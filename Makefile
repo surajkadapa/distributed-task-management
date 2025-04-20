@@ -1,37 +1,37 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -MMD -MP
-BUILD_DIR = build
+CXXFLAGS = -std=c++17 -Wall -Wextra -pthread
+
+# Include & Source directories
+INCLUDE_DIR = include
 SRC_DIR = src
-SRC = $(wildcard $(SRC_DIR)/*.cpp) main.cpp
-OBJ = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SRC))
-DEP = $(OBJ:.o=.d)
-TARGET = task_manager
+FRONTEND_DIR = frontend
 
-# Default target
-all: $(TARGET)
+# Additional Wt paths (assuming installed via /usr/local)
+WT_INC = /usr/local/include -Iinclude
+WT_LIB = /usr/local/lib
 
-# Linking the final binary
-$(TARGET): $(OBJ)
-	@echo "Linking $(TARGET)..."
-	$(CXX) $(CXXFLAGS) -o $@ $^
+# Libraries
+LIBS = -lboost_system -lpthread -lsqlite3
 
-# Compiling source files
-$(BUILD_DIR)/%.o: %.cpp | $(BUILD_DIR)
-	@echo "Compiling $<..."
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+# List of all source files
+SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
+OBJ_FILES := $(SRC_FILES:$(SRC_DIR)/%.cpp=build/%.o)
 
-# Create build directory if it doesn't exist
-$(BUILD_DIR):
-	@mkdir -p $(BUILD_DIR)/src
+# Output binary
+BACKEND_BIN = bin/taskmaster_backend
 
-# Clean build files
+# Create build and bin dirs if not present
+$(shell mkdir -p build bin)
+
+all: $(BACKEND_BIN)
+
+$(BACKEND_BIN): $(OBJ_FILES)
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -I$(WT_INC) $^ -L$(WT_LIB) $(LIBS) -o $@
+
+build/%.o: $(SRC_DIR)/%.cpp
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -I$(WT_INC) -c $< -o $@
+
 clean:
-	@echo "Cleaning up..."
-	rm -rf $(BUILD_DIR) $(TARGET)
+	rm -rf build/*.o $(BACKEND_BIN)
 
-# Debug build with debugging symbols
-debug: CXXFLAGS += -g
-debug: clean all
-
-# Include dependency files
--include $(DEP)
+.PHONY: all clean
