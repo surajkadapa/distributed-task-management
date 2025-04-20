@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+</head>
+<body>
+    <h1>Task Manager</h1>
+
+    <h2>Nodes</h2>
+    <button onclick="loadNodes()">Load Nodes</button>
+    <ul id="nodes-list"></ul>
+
+    <h2>Add Task</h2>
+    <form id="task-form">
+        <input type="text" id="task-name" placeholder="Task Name" required>
+        <input type="number" id="task-duration" placeholder="Duration (in seconds)" required>
+        <button type="submit">Add Task</button>
+    </form>
+
+    <h2>All Tasks</h2>
+    <button onclick="loadTasks()">Load Tasks</button>
+    <ul id="tasks-list"></ul>
+
+    <script>
+        // Function to load nodes
+        async function loadNodes() {
+            const response = await fetch('/nodes');
+            const nodes = await response.json();
+            const list = document.getElementById('nodes-list');
+            list.innerHTML = ''; // Clear the list first
+            nodes.forEach(node => {
+                const li = document.createElement('li');
+                li.textContent = `Node ID: ${node.id}, Task Count: ${node.task_count}`;
+                list.appendChild(li);
+            });
+        }
+
+        // Function to load tasks
+        async function loadTasks() {
+            const response = await fetch('/tasks');
+            const tasks = await response.json();
+            const list = document.getElementById('tasks-list');
+            list.innerHTML = ''; // Clear the list first
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.textContent = `Task Name: ${task.name}, Duration: ${task.duration} sec, Status: ${task.status}`;
+                list.appendChild(li);
+            });
+        }
+
+        // Add task via form
+        document.getElementById('task-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('task-name').value;
+            const duration = document.getElementById('task-duration').value;
+
+            const response = await fetch('/add_task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, duration })
+            });
+
+            const result = await response.json();
+            alert(result.status); // Show task add status
+            loadTasks(); // Refresh task list
+        });
+    </script>
+</body>
+</html>

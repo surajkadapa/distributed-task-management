@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Task Manager</title>
+</head>
+<body>
+  <h1>🧠 Task Manager Dashboard</h1>
+
+  <button onclick="addNode()">Add Node</button>
+  <button onclick="addTask()">Add Dummy Task</button>
+  <button onclick="fetchTasks()">Show Tasks</button>
+  <button onclick="fetchNodes()">Show Nodes</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    const output = document.getElementById("output");
+
+    async function addNode() {
+      try {
+        const res = await fetch("http://localhost:5000/add_node", {
+          method: "POST",
+        });
+        const data = await res.json();
+        output.textContent = "✅ " + JSON.stringify(data);
+      } catch (err) {
+        output.textContent = "❌ " + err;
+      }
+    }
+
+    async function addTask() {
+      try {
+        const res = await fetch("http://localhost:5000/add_task", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "TestTask", duration: 10 })
+        });
+        const data = await res.json();
+        output.textContent = "✅ " + JSON.stringify(data);
+      } catch (err) {
+        output.textContent = "❌ " + err;
+      }
+    }
+
+    async function fetchTasks() {
+      const res = await fetch("http://localhost:5000/tasks");
+      const data = await res.json();
+      output.textContent = "📋 Tasks:\n" + JSON.stringify(data, null, 2);
+    }
+
+    async function fetchNodes() {
+      const res = await fetch("http://localhost:5000/nodes");
+      const data = await res.json();
+      output.textContent = "🖥️ Nodes:\n" + JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
