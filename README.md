@@ -16,7 +16,7 @@
 
 1. In another terminal, start up the Flask app:
    ```bash
-   python app.js
+   python app.py
    ```
 
 2. In a new terminal, navigate to the `frontend` directory, install dependencies, and start the frontend:
